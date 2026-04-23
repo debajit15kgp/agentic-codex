@@ -1,0 +1,46 @@
+<svg width="1440" height="980" viewBox="0 0 1440 980" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1440" height="980" rx="28" fill="#EFE5D3"/>
+  <rect x="24" y="24" width="1392" height="180" rx="28" fill="#FFF9F1" stroke="#D8C9B3"/>
+  <text x="60" y="72" fill="#6A6F68" font-family="Arial, sans-serif" font-size="16" letter-spacing="3">PROJECT INTAKE, SHARED CONTEXT, SAFE EXECUTION</text>
+  <text x="60" y="128" fill="#1B1C1A" font-family="Georgia, serif" font-size="48">Agentic Project Portal</text>
+  <text x="60" y="168" fill="#5D635C" font-family="Arial, sans-serif" font-size="20">Define projects and tasks first. Launch Codex or Claude only when you want a stage to run.</text>
+  <rect x="1120" y="62" width="240" height="42" rx="21" fill="#1B1C1A"/>
+  <rect x="1120" y="118" width="240" height="42" rx="21" fill="#1B1C1A"/>
+  <rect x="1120" y="174" width="240" height="42" rx="21" fill="#155E63"/>
+  <rect x="24" y="224" width="332" height="130" rx="24" fill="#FFF9F1" stroke="#D8C9B3"/>
+  <rect x="372" y="224" width="332" height="130" rx="24" fill="#FFF9F1" stroke="#D8C9B3"/>
+  <rect x="720" y="224" width="332" height="130" rx="24" fill="#FFF9F1" stroke="#D8C9B3"/>
+  <rect x="1068" y="224" width="348" height="130" rx="24" fill="#FFF9F1" stroke="#D8C9B3"/>
+  <text x="54" y="264" fill="#6A6F68" font-family="Arial, sans-serif" font-size="14" letter-spacing="3">PROJECTS</text>
+  <text x="54" y="324" fill="#1B1C1A" font-family="Georgia, serif" font-size="44">12</text>
+  <text x="402" y="264" fill="#6A6F68" font-family="Arial, sans-serif" font-size="14" letter-spacing="3">OPEN TASKS</text>
+  <text x="402" y="324" fill="#1B1C1A" font-family="Georgia, serif" font-size="44">37</text>
+  <text x="750" y="264" fill="#6A6F68" font-family="Arial, sans-serif" font-size="14" letter-spacing="3">RUNNING STAGES</text>
+  <text x="750" y="324" fill="#1B1C1A" font-family="Georgia, serif" font-size="44">3</text>
+  <text x="1098" y="264" fill="#6A6F68" font-family="Arial, sans-serif" font-size="14" letter-spacing="3">AUTO COMMIT</text>
+  <text x="1098" y="318" fill="#5D635C" font-family="Arial, sans-serif" font-size="20">Track changes in git</text>
+  <rect x="24" y="378" width="690" height="308" rx="28" fill="#FFF9F1" stroke="#D8C9B3"/>
+  <rect x="738" y="378" width="678" height="308" rx="28" fill="#FFF9F1" stroke="#D8C9B3"/>
+  <text x="60" y="418" fill="#6A6F68" font-family="Arial, sans-serif" font-size="14" letter-spacing="3">INTAKE</text>
+  <text x="60" y="458" fill="#1B1C1A" font-family="Georgia, serif" font-size="30">Add Projects Without Launching Agents</text>
+  <rect x="60" y="486" width="300" height="44" rx="14" fill="#FFFFFF" stroke="#D8C9B3"/>
+  <rect x="376" y="486" width="300" height="44" rx="14" fill="#FFFFFF" stroke="#D8C9B3"/>
+  <rect x="60" y="546" width="616" height="44" rx="14" fill="#FFFFFF" stroke="#D8C9B3"/>
+  <rect x="60" y="606" width="616" height="44" rx="14" fill="#FFFFFF" stroke="#D8C9B3"/>
+  <rect x="60" y="618" width="200" height="0" stroke="#D8C9B3"/>
+  <rect x="60" y="620" width="200" height="0" stroke="#D8C9B3"/>
+  <rect x="60" y="634" width="220" height="18" rx="9" fill="#155E631A"/>
+  <rect x="456" y="634" width="220" height="18" rx="9" fill="#C8553D1A"/>
+  <text x="770" y="418" fill="#6A6F68" font-family="Arial, sans-serif" font-size="14" letter-spacing="3">STAGE OUTPUT</text>
+  <text x="770" y="458" fill="#1B1C1A" font-family="Georgia, serif" font-size="30">Only Needed When You Launch A Stage</text>
+  <rect x="770" y="490" width="614" height="60" rx="18" fill="#FFFDF9" stroke="#D8C9B3"/>
+  <rect x="770" y="566" width="614" height="92" rx="22" fill="#1B1C1A"/>
+  <text x="60" y="726" fill="#6A6F68" font-family="Arial, sans-serif" font-size="14" letter-spacing="3">PROJECTS</text>
+  <text x="60" y="766" fill="#1B1C1A" font-family="Georgia, serif" font-size="30">Projects, Task Folders, And Sync Controls</text>
+  <rect x="24" y="790" width="1392" height="166" rx="28" fill="#FFF9F1" stroke="#D8C9B3"/>
+  <text x="60" y="836" fill="#1B1C1A" font-family="Georgia, serif" font-size="28">Marketing Site</text>
+  <rect x="1200" y="818" width="164" height="28" rx="14" fill="#155E631A"/>
+  <rect x="1030" y="818" width="154" height="28" rx="14" fill="#00000010"/>
+  <rect x="60" y="864" width="620" height="52" rx="18" fill="#FFFFFF" stroke="#D8C9B3"/>
+  <rect x="706" y="864" width="640" height="52" rx="18" fill="#FFFFFF" stroke="#D8C9B3"/>
+</svg>

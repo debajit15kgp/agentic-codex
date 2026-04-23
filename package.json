@@ -1,0 +1,11 @@
+{
+  "name": "agentic-codex-dashboard",
+  "version": "0.1.0",
+  "description": "Project dashboard for coordinating tasks, agent sessions, and git sync.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  }
+}

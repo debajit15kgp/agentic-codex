@@ -1,0 +1,10 @@
+{
+  "settings": {
+    "autoSyncOnWrite": false,
+    "defaultCommitMessage": "chore: sync dashboard state",
+    "claudeCommand": "claude",
+    "codexCommand": "codex"
+  },
+  "scanRoots": [],
+  "sessions": []
+}

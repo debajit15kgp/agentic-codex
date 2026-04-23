@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Agentic Project Portal</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <header class="hero">
+        <div class="hero-copy-wrap">
+          <p class="eyebrow">Project Intake, Shared Context, Safe Execution</p>
+          <h1>Agentic Project Portal</h1>
+          <p class="hero-copy">
+            Capture a GitHub project, define the work in plain English, break it into subtasks,
+            set success criteria, and only launch Codex or Claude when you want a stage to run.
+          </p>
+        </div>
+        <div class="hero-actions">
+          <button id="refreshButton" class="button secondary">Refresh</button>
+          <button id="commitButton" class="button secondary">Commit Portal State</button>
+          <button id="pushButton" class="button primary">Push Portal State</button>
+        </div>
+      </header>
+
+      <section class="top-grid">
+        <article class="panel stat-panel">
+          <p class="stat-label">Projects</p>
+          <p id="projectCount" class="stat-value">0</p>
+        </article>
+        <article class="panel stat-panel">
+          <p class="stat-label">Open Tasks</p>
+          <p id="taskCount" class="stat-value">0</p>
+        </article>
+        <article class="panel stat-panel">
+          <p class="stat-label">Running Stages</p>
+          <p id="runningCount" class="stat-value">0</p>
+        </article>
+        <article class="panel stat-panel">
+          <p class="stat-label">Auto Commit</p>
+          <label class="toggle">
+            <input id="autoSyncToggle" type="checkbox" />
+            <span>Track project/task changes in git</span>
+          </label>
+        </article>
+      </section>
+
+      <section class="main-grid">
+        <article class="panel intake-panel">
+          <div class="panel-header">
+            <div>
+              <p class="section-kicker">Intake</p>
+              <h2>Add Projects Without Launching Agents</h2>
+            </div>
+          </div>
+
+          <form id="projectForm" class="stack">
+            <input name="name" placeholder="Project name" required />
+            <input name="githubUrl" placeholder="GitHub URL (optional but recommended)" />
+            <input name="repoPath" placeholder="Local repo path (optional until you want coding/sync)" />
+            <input name="headline" placeholder="Project headline" />
+            <textarea name="notes" placeholder="What is this project about?"></textarea>
+            <div class="inline-grid">
+              <select name="implementationMode">
+                <option value="codex">Implementation: Codex</option>
+                <option value="claude">Implementation: Claude</option>
+                <option value="manual">Implementation: Manual</option>
+              </select>
+              <select name="reviewMode">
+                <option value="codex_review">Review: Codex</option>
+                <option value="claude_review">Review: Claude</option>
+                <option value="review_checklist">Review: Checklist</option>
+                <option value="manual">Review: Manual</option>
+              </select>
+            </div>
+            <div class="inline-grid">
+              <select name="simplifyMode">
+                <option value="simplify_skill">Simplify: Skill</option>
+                <option value="codex_refactor">Simplify: Codex</option>
+                <option value="refactor_checklist">Simplify: Checklist</option>
+                <option value="skip">Simplify: Skip</option>
+              </select>
+              <select name="syncMode">
+                <option value="push_pr">Sync: Push branch</option>
+                <option value="push">Sync: Push only</option>
+                <option value="commit_only">Sync: Commit only</option>
+                <option value="manual">Sync: Manual</option>
+              </select>
+            </div>
+            <button class="button primary" type="submit">Create Project Folder</button>
+          </form>
+
+          <form id="importForm" class="stack import-form">
+            <input name="rootPath" placeholder="Optional: scan a parent folder for local git repos" required />
+            <button class="button secondary" type="submit">Import Local Repos</button>
+          </form>
+
+          <div class="preview-card">
+            <p class="section-kicker">Visual Preview</p>
+            <img src="/dashboard-preview.svg" alt="Portal layout preview" />
+          </div>
+        </article>
+
+        <article class="panel log-panel">
+          <div class="panel-header">
+            <div>
+              <p class="section-kicker">Stage Output</p>
+              <h2>Only Needed When You Launch A Stage</h2>
+            </div>
+          </div>
+          <div id="sessionsList" class="session-list"></div>
+          <div class="log-shell">
+            <div class="log-header">
+              <span>Stage Log</span>
+              <button id="loadLogButton" class="button ghost" type="button">Reload Log</button>
+            </div>
+            <pre id="logViewer">You do not need to interact with agent terminals unless you choose to run a stage.</pre>
+          </div>
+        </article>
+      </section>
+
+      <section class="projects-panel panel">
+        <div class="panel-header">
+          <div>
+            <p class="section-kicker">Projects</p>
+            <h2>Projects, Task Folders, And Sync Controls</h2>
+          </div>
+        </div>
+        <div id="projectsList" class="project-list"></div>
+      </section>
+    </div>
+
+    <template id="projectTemplate">
+      <section class="project-card">
+        <div class="project-head">
+          <div>
+            <h3 class="project-name"></h3>
+            <p class="project-meta"></p>
+            <p class="project-headline"></p>
+          </div>
+          <div class="project-badges">
+            <span class="badge project-branch"></span>
+            <span class="badge project-lock"></span>
+          </div>
+        </div>
+
+        <div class="project-info-grid">
+          <div>
+            <p class="mini-label">Shared Folder</p>
+            <p class="mono project-shared-root"></p>
+          </div>
+          <div>
+            <p class="mini-label">GitHub</p>
+            <p class="mono project-github"></p>
+          </div>
+        </div>
+
+        <form class="task-form stack task-intake">
+          <input name="headline" placeholder="Task headline" required />
+          <textarea name="description" placeholder="Task description in plain English"></textarea>
+          <div class="inline-grid">
+            <textarea name="subtasks" placeholder="Subtasks, one per line"></textarea>
+            <textarea name="successCriteria" placeholder="Success criteria, one per line"></textarea>
+          </div>
+          <div class="inline-grid">
+            <select name="implementationMode">
+              <option value="codex">Implementation: Codex</option>
+              <option value="claude">Implementation: Claude</option>
+              <option value="manual">Implementation: Manual</option>
+            </select>
+            <select name="reviewMode">
+              <option value="codex_review">Review: Codex</option>
+              <option value="claude_review">Review: Claude</option>
+              <option value="review_checklist">Review: Checklist</option>
+              <option value="manual">Review: Manual</option>
+            </select>
+          </div>
+          <div class="inline-grid">
+            <select name="simplifyMode">
+              <option value="simplify_skill">Simplify: Skill</option>
+              <option value="codex_refactor">Simplify: Codex</option>
+              <option value="refactor_checklist">Simplify: Checklist</option>
+              <option value="skip">Simplify: Skip</option>
+            </select>
+            <select name="syncMode">
+              <option value="push_pr">Sync: Push branch</option>
+              <option value="push">Sync: Push only</option>
+              <option value="commit_only">Sync: Commit only</option>
+              <option value="manual">Sync: Manual</option>
+            </select>
+          </div>
+          <button class="button secondary" type="submit">Create Task Folder</button>
+        </form>
+
+        <div class="task-list"></div>
+      </section>
+    </template>
+
+    <template id="taskTemplate">
+      <article class="task-card">
+        <div class="task-row">
+          <div>
+            <h4 class="task-title"></h4>
+            <p class="task-detail"></p>
+          </div>
+          <span class="badge task-status"></span>
+        </div>
+
+        <div class="task-meta-grid">
+          <div>
+            <p class="mini-label">Shared Task Folder</p>
+            <p class="mono task-root"></p>
+          </div>
+          <div>
+            <p class="mini-label">Modes</p>
+            <p class="task-modes"></p>
+          </div>
+        </div>
+
+        <div class="pill-row">
+          <span class="pill task-priority"></span>
+          <span class="pill task-subtasks"></span>
+          <span class="pill task-success"></span>
+        </div>
+
+        <div class="task-actions">
+          <button class="button ghost task-launch-implementation" type="button">Run Implementation</button>
+          <button class="button ghost task-launch-review" type="button">Run Review</button>
+          <button class="button ghost task-launch-simplify" type="button">Run Simplify</button>
+        </div>
+
+        <form class="sync-form stack">
+          <textarea name="files" placeholder="Files to sync, one per line"></textarea>
+          <div class="inline-grid">
+            <input name="branchName" placeholder="Branch name (optional)" />
+            <input name="commitMessage" placeholder="Commit message" />
+          </div>
+          <div class="inline-grid">
+            <select name="mode">
+              <option value="push_pr">Push branch</option>
+              <option value="push">Push only</option>
+              <option value="commit_only">Commit only</option>
+              <option value="manual">Manual</option>
+            </select>
+            <div class="sync-buttons">
+              <button class="button ghost task-queue-sync" type="button">Queue Sync</button>
+              <button class="button primary task-run-sync" type="button">Run Sync</button>
+            </div>
+          </div>
+        </form>
+
+        <div class="sync-history"></div>
+      </article>
+    </template>
+
+    <template id="sessionTemplate">
+      <article class="session-card">
+        <div class="task-row">
+          <div>
+            <h4 class="session-title"></h4>
+            <p class="session-meta"></p>
+          </div>
+          <span class="badge session-status"></span>
+        </div>
+        <div class="task-row task-row-bottom">
+          <code class="session-command"></code>
+          <div class="task-actions">
+            <button class="button ghost session-log" type="button">View Log</button>
+            <button class="button ghost session-stop" type="button">Stop</button>
+          </div>
+        </div>
+      </article>
+    </template>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

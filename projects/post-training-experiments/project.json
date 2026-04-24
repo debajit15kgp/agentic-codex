@@ -1,0 +1,28 @@
+{
+  "id": "post-training-experiments",
+  "slug": "post-training-experiments",
+  "name": "post-training-experiments",
+  "headline": "A folder to experiment on post training",
+  "githubUrl": "",
+  "repoPath": "/Users/debajitchakraborty/Desktop/Projects/post-training-experiments",
+  "defaultBranch": "main",
+  "notes": "This repo is used to generate ideas on improve post training RL methods and also running small scale testbed experiments and publish blogs on debajitchakraborty.com",
+  "status": "active",
+  "defaults": {
+    "implementationMode": "codex",
+    "reviewMode": "codex_review",
+    "simplifyMode": "simplify_skill",
+    "syncMode": "push_pr"
+  },
+  "policies": {
+    "allowParallelRepoWrites": false,
+    "requireExplicitSyncFiles": true,
+    "reviewContextMode": "narrow"
+  },
+  "sync": {
+    "githubRepo": "",
+    "lastSyncedAt": null
+  },
+  "createdAt": "2026-04-23T23:02:41.615Z",
+  "updatedAt": "2026-04-23T23:02:41.615Z"
+}

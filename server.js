@@ -257,6 +257,31 @@ async function gitSnapshot(projectPath) {
   };
 }
 
+async function listGitBranches(projectPath) {
+  if (!projectPath || !(await fileExists(projectPath))) {
+    return [];
+  }
+
+  const result = await runCommand(
+    "git",
+    ["for-each-ref", "--format=%(refname:short)", "refs/heads"],
+    { cwd: projectPath }
+  );
+
+  if (result.code !== 0) {
+    return [];
+  }
+
+  return result.stdout.split("\n").map((line) => line.trim()).filter(Boolean);
+}
+
+async function checkoutGitBranch(projectPath, branchName) {
+  const result = await runCommand("git", ["checkout", branchName], { cwd: projectPath });
+  if (result.code !== 0) {
+    throw new Error(result.stderr || `Failed to switch to branch "${branchName}".`);
+  }
+}
+
 function defaultStageConfig(project) {
   return {
     implementation: {
@@ -278,10 +303,46 @@ function defaultStageConfig(project) {
   };
 }
 
+function taskTypeConfig(taskType) {
+  const normalized = cleanText(taskType, "coding");
+  if (normalized === "understanding") {
+    return {
+      implementationLabel: "understanding",
+      reviewLabel: "checking understanding",
+      simplifyLabel: "refining notes"
+    };
+  }
+
+  if (normalized === "summarization") {
+    return {
+      implementationLabel: "summarizing",
+      reviewLabel: "checking summary",
+      simplifyLabel: "tightening summary"
+    };
+  }
+
+  if (normalized === "research") {
+    return {
+      implementationLabel: "investigating",
+      reviewLabel: "reviewing findings",
+      simplifyLabel: "distilling findings"
+    };
+  }
+
+  return {
+    implementationLabel: "implementing",
+    reviewLabel: "reviewing",
+    simplifyLabel: "simplifying"
+  };
+}
+
 function formatPrompt(task, project, stage) {
+  const typeConfig = taskTypeConfig(task.type);
   const promptLines = [
     `Project: ${project.name}`,
     `GitHub: ${project.githubUrl || "not provided"}`,
+    `Branch: ${task.branch || project.activeBranch || project.defaultBranch || "main"}`,
+    `Task type: ${task.type || "coding"}`,
     `Task headline: ${task.headline}`,
     `Stage: ${stage}`,
     "",
@@ -313,21 +374,27 @@ function formatPrompt(task, project, stage) {
   if (stage === "review") {
     promptLines.push(
       "",
-      "Review this task with relatively fresh context. Focus on correctness, regressions, maintainability, and test risk."
+      task.type === "coding"
+        ? "Review this task with relatively fresh context. Focus on correctness, regressions, maintainability, and test risk."
+        : `Approach this as ${typeConfig.reviewLabel}. Validate the understanding, summary, or findings with a fresh perspective.`
     );
   }
 
   if (stage === "implementation") {
     promptLines.push(
       "",
-      "Aim for a working, reviewable solution. Do not over-optimize."
+      task.type === "coding"
+        ? "Aim for a working, reviewable solution. Do not over-optimize."
+        : `Focus on ${typeConfig.implementationLabel}. Produce a clear, useful result in the task folder.`
     );
   }
 
   if (stage === "simplify") {
     promptLines.push(
       "",
-      "Simplify complexity while preserving behavior. If simplification is unnecessary, record that clearly."
+      task.type === "coding"
+        ? "Simplify complexity while preserving behavior. If simplification is unnecessary, record that clearly."
+        : `Focus on ${typeConfig.simplifyLabel}. Make the output clearer, shorter, and easier to consume.`
     );
   }
 
@@ -359,11 +426,12 @@ async function createProjectScaffold(input) {
   const project = {
     id: slug,
     slug,
-    name: cleanText(input.name, slug),
+    name: cleanText(input.name, path.basename(input.repoPath || slug)),
     headline: cleanText(input.headline),
     githubUrl: cleanText(input.githubUrl, gitInfo.remoteUrl),
     repoPath: cleanText(input.repoPath),
     defaultBranch: cleanText(input.defaultBranch, gitInfo.branch || "main"),
+    activeBranch: cleanText(input.activeBranch, gitInfo.branch || "main"),
     notes: cleanText(input.notes),
     status: cleanText(input.status, "active"),
     defaults: {
@@ -419,6 +487,8 @@ async function createTaskScaffold(project, input) {
     id: taskId,
     projectId: project.id,
     projectSlug: project.slug,
+    branch: cleanText(input.branch, project.activeBranch || project.defaultBranch || "main"),
+    type: cleanText(input.type, "coding"),
     headline: cleanText(input.headline, "Untitled task"),
     description: cleanText(input.description),
     subtasks,
@@ -483,11 +553,17 @@ async function createTaskScaffold(project, input) {
   return task;
 }
 
-async function listTasksForProject(project) {
+function taskBranch(task, project) {
+  return cleanText(task.branch, project.activeBranch || project.defaultBranch || "main");
+}
+
+async function listTasksForProject(project, options = {}) {
   const dir = tasksDir(project.slug);
   if (!(await fileExists(dir))) {
     return [];
   }
+
+  const activeBranch = cleanText(options.branch, project.activeBranch || project.defaultBranch || "main");
 
   const entries = await readdir(dir, { withFileTypes: true });
   const tasks = [];
@@ -510,11 +586,16 @@ async function listTasksForProject(project) {
     });
 
     const syncJobs = await listSyncJobs(project.slug, task.id);
-    tasks.push({
+    const hydratedTask = {
       ...task,
+      branch: taskBranch(task, project),
       lock,
       syncJobs
-    });
+    };
+
+    if (options.includeAll || hydratedTask.branch === activeBranch) {
+      tasks.push(hydratedTask);
+    }
   }
 
   tasks.sort((left, right) => String(right.updatedAt).localeCompare(String(left.updatedAt)));
@@ -565,12 +646,17 @@ async function listProjects() {
       continue;
     }
 
-    const tasks = await listTasksForProject(project);
     const gitInfo = await gitSnapshot(project.repoPath);
-    const activeRepoLock = tasks.find((task) => task.lock?.repo_write_lock);
+    const branches = await listGitBranches(project.repoPath);
+    const activeBranch = cleanText(project.activeBranch, gitInfo.branch || project.defaultBranch || "main");
+    const tasks = await listTasksForProject({ ...project, activeBranch }, { branch: activeBranch });
+    const allTasks = await listTasksForProject({ ...project, activeBranch }, { includeAll: true });
+    const activeRepoLock = allTasks.find((task) => task.lock?.repo_write_lock);
 
     projects.push({
       ...project,
+      activeBranch,
+      branches,
       tasks,
       git: gitInfo,
       activeRepoLock: activeRepoLock
@@ -593,10 +679,14 @@ async function getProjectById(projectId) {
     return null;
   }
 
-  const tasks = await listTasksForProject(project);
   const gitInfo = await gitSnapshot(project.repoPath);
+  const branches = await listGitBranches(project.repoPath);
+  const activeBranch = cleanText(project.activeBranch, gitInfo.branch || project.defaultBranch || "main");
+  const tasks = await listTasksForProject({ ...project, activeBranch }, { branch: activeBranch });
   return {
     ...project,
+    activeBranch,
+    branches,
     tasks,
     git: gitInfo
   };
@@ -605,7 +695,7 @@ async function getProjectById(projectId) {
 async function getTaskById(taskId) {
   const projects = await listProjects();
   for (const project of projects) {
-    const task = project.tasks.find((item) => item.id === taskId);
+    const task = (await listTasksForProject(project, { includeAll: true })).find((item) => item.id === taskId);
     if (task) {
       return { project, task };
     }
@@ -633,7 +723,7 @@ async function updateTaskMarkdown(task, project, stage) {
 }
 
 async function acquireRepoWriteLock(project, task, owner) {
-  const tasks = await listTasksForProject(project);
+  const tasks = await listTasksForProject(project, { includeAll: true });
   const conflictingTask = tasks.find((item) => item.id !== task.id && item.lock?.repo_write_lock);
 
   if (conflictingTask) {
@@ -889,7 +979,7 @@ async function runSyncJob(taskId, input) {
     throw new Error("A valid local repository path is required before syncing.");
   }
 
-  const tasks = await listTasksForProject(project);
+  const tasks = await listTasksForProject(project, { includeAll: true });
   const lockedTask = tasks.find((item) => item.lock?.repo_write_lock);
   if (lockedTask) {
     throw new Error(`Cannot sync while repo lock is active on "${lockedTask.headline}".`);
@@ -914,10 +1004,7 @@ async function runSyncJob(taskId, input) {
         throw new Error(current.stderr || "Failed to read current branch.");
       }
       if (current.stdout.trim() !== branchName) {
-        const checkout = await runCommand("git", ["checkout", "-B", branchName], { cwd: repoPath });
-        if (checkout.code !== 0) {
-          throw new Error(checkout.stderr || "Failed to switch branch.");
-        }
+        await checkoutGitBranch(repoPath, branchName);
       }
     }
 
@@ -1082,6 +1169,68 @@ async function handleApi(req, res) {
     return;
   }
 
+  if (req.method === "PATCH" && parts[0] === "api" && parts[1] === "projects" && parts[2]) {
+    const project = await getProjectById(parts[2]);
+    if (!project) {
+      respondJson(res, 404, { error: "Project not found." });
+      return;
+    }
+
+    const body = await parseBody(req);
+    project.name = body.name !== undefined ? cleanText(body.name, project.name) : project.name;
+    project.headline = body.headline !== undefined ? cleanText(body.headline, project.headline) : project.headline;
+    project.repoPath = body.repoPath !== undefined ? cleanText(body.repoPath, project.repoPath) : project.repoPath;
+    project.githubUrl = body.githubUrl !== undefined ? cleanText(body.githubUrl, project.githubUrl) : project.githubUrl;
+    project.notes = body.notes !== undefined ? cleanText(body.notes, project.notes) : project.notes;
+    project.activeBranch = body.activeBranch !== undefined ? cleanText(body.activeBranch, project.activeBranch) : project.activeBranch;
+    if (body.implementationMode !== undefined) {
+      project.defaults.implementationMode = cleanText(body.implementationMode, project.defaults.implementationMode);
+    }
+    if (body.reviewMode !== undefined) {
+      project.defaults.reviewMode = cleanText(body.reviewMode, project.defaults.reviewMode);
+    }
+    if (body.simplifyMode !== undefined) {
+      project.defaults.simplifyMode = cleanText(body.simplifyMode, project.defaults.simplifyMode);
+    }
+    if (body.syncMode !== undefined) {
+      project.defaults.syncMode = cleanText(body.syncMode, project.defaults.syncMode);
+    }
+    await updateProject(project);
+    await stageDashboardFiles();
+    const runtime = await readRuntime();
+    await maybeAutoSync(runtime);
+    respondJson(res, 200, project);
+    return;
+  }
+
+  if (req.method === "POST" && parts[0] === "api" && parts[1] === "projects" && parts[2] && parts[3] === "branch") {
+    const project = await getProjectById(parts[2]);
+    if (!project) {
+      respondJson(res, 404, { error: "Project not found." });
+      return;
+    }
+
+    const body = await parseBody(req);
+    const branchName = cleanText(body.branch);
+    if (!branchName) {
+      respondJson(res, 400, { error: "Branch is required." });
+      return;
+    }
+    if (!project.repoPath || !(await fileExists(project.repoPath))) {
+      respondJson(res, 400, { error: "A valid local repo path is required before switching branches." });
+      return;
+    }
+
+    await checkoutGitBranch(project.repoPath, branchName);
+    project.activeBranch = branchName;
+    await updateProject(project);
+    await stageDashboardFiles();
+    const runtime = await readRuntime();
+    await maybeAutoSync(runtime);
+    respondJson(res, 200, { ok: true, branch: branchName });
+    return;
+  }
+
   if (req.method === "PATCH" && parts[0] === "api" && parts[1] === "tasks" && parts[2]) {
     const found = await getTaskById(parts[2]);
     if (!found) {
@@ -1097,6 +1246,8 @@ async function handleApi(req, res) {
     task.successCriteria = body.successCriteria !== undefined ? linesToArray(body.successCriteria) : task.successCriteria;
     task.status = body.status !== undefined ? cleanText(body.status, task.status) : task.status;
     task.priority = body.priority !== undefined ? cleanText(body.priority, task.priority) : task.priority;
+    task.branch = body.branch !== undefined ? cleanText(body.branch, task.branch) : task.branch;
+    task.type = body.type !== undefined ? cleanText(body.type, task.type) : task.type;
     if (body.implementationMode !== undefined) {
       task.stageConfig.implementation.mode = cleanText(body.implementationMode, task.stageConfig.implementation.mode);
     }

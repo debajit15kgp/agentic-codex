@@ -1,0 +1,20 @@
+Project: joint-learning marl
+GitHub: not provided
+Branch: network-data
+Task headline: Repo comprehension
+Stage: implementation
+
+Task description:
+Understanding how supervised learning inside joint-learning/ worked and what is currently present in supervised-learning/ folder
+
+Subtasks:
+- Read through the joint-learning folder and see what all implementations of my supervised learning approach was done, understand the data
+
+Success criteria:
+- Understand what data it needs and how to use the "The dataset we're using is pushed in the network-data branch in evaluation/data/splits.  It's 1000 job sets of 6 jobs split into a training set (700 sets) and a testing set (300 sets). The _jobs files contain the job sets as a list of list of jobs. The _labels files contain the labels (ILP decisions) for each job set. Each label corresponds to the respective job set by index (e.g. labels[0] is the label for job_sets[0], etc.)" data here in network-data branch with our model
+
+Use the task folder as the shared context source of truth.
+Task folder: /Users/debajitchakraborty/Desktop/Projects/agentic-codex/projects/joint-learning-marl/shared/tasks/repo-comprehension-1776988484353
+Repository path: /Users/debajitchakraborty/Desktop/Projects/joint-learning-marl
+
+Aim for a working, reviewable solution. Do not over-optimize.

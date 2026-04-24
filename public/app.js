@@ -1,6 +1,7 @@
 const state = {
   data: null,
-  selectedSessionId: null
+  selectedSessionId: null,
+  collapsedProjects: new Set()
 };
 
 const projectCount = document.querySelector("#projectCount");
@@ -40,6 +41,15 @@ async function loadState() {
   render();
 }
 
+function shouldPauseRefresh() {
+  const active = document.activeElement;
+  if (!active) {
+    return false;
+  }
+
+  return ["INPUT", "TEXTAREA", "SELECT"].includes(active.tagName);
+}
+
 function renderStats() {
   const projects = state.data.projects ?? [];
   const tasks = projects.flatMap((project) => project.tasks ?? []);
@@ -52,12 +62,45 @@ function renderStats() {
 }
 
 function modeSummary(task) {
+  const labels = stageLabels(task.type);
   return [
-    `Implement: ${task.stageConfig.implementation.mode}`,
-    `Review: ${task.stageConfig.review.mode}`,
-    `Simplify: ${task.stageConfig.simplify.mode}`,
+    `${labels.implementation}: ${task.stageConfig.implementation.mode}`,
+    `${labels.review}: ${task.stageConfig.review.mode}`,
+    `${labels.simplify}: ${task.stageConfig.simplify.mode}`,
     `Sync: ${task.stageConfig.sync.mode}`
   ].join(" • ");
+}
+
+function stageLabels(taskType) {
+  if (taskType === "understanding") {
+    return {
+      implementation: "Understand",
+      review: "Check",
+      simplify: "Refine"
+    };
+  }
+
+  if (taskType === "summarization") {
+    return {
+      implementation: "Summarize",
+      review: "Verify",
+      simplify: "Tighten"
+    };
+  }
+
+  if (taskType === "research") {
+    return {
+      implementation: "Investigate",
+      review: "Review",
+      simplify: "Distill"
+    };
+  }
+
+  return {
+    implementation: "Implement",
+    review: "Review",
+    simplify: "Simplify"
+  };
 }
 
 async function runStage(taskId, stage) {
@@ -86,6 +129,24 @@ async function runSync(taskId, syncForm) {
   await loadState();
 }
 
+async function switchBranch(projectId, branch) {
+  await api(`/api/projects/${projectId}/branch`, {
+    method: "POST",
+    body: JSON.stringify({ branch })
+  });
+  await loadState();
+}
+
+function toggleHidden(element) {
+  element.classList.toggle("hidden");
+}
+
+function fillSelect(select, value) {
+  if (value !== undefined && value !== null && select) {
+    select.value = value;
+  }
+}
+
 function buildTaskCard(project, task) {
   const fragment = taskTemplate.content.cloneNode(true);
   const card = fragment.querySelector(".task-card");
@@ -94,14 +155,46 @@ function buildTaskCard(project, task) {
   fragment.querySelector(".task-detail").textContent = task.description || "No description yet.";
   fragment.querySelector(".task-status").textContent = statusLabel(task.status);
   fragment.querySelector(".task-root").textContent = task.taskRoot;
+  fragment.querySelector(".task-branch").textContent = task.branch || project.activeBranch || "main";
   fragment.querySelector(".task-modes").textContent = modeSummary(task);
+  fragment.querySelector(".task-type").textContent = `Type: ${task.type || "coding"}`;
   fragment.querySelector(".task-priority").textContent = `Priority: ${task.priority}`;
   fragment.querySelector(".task-subtasks").textContent = `${task.subtasks.length} subtasks`;
   fragment.querySelector(".task-success").textContent = `${task.successCriteria.length} success checks`;
 
+  const taskEditForm = fragment.querySelector(".task-edit-form");
+  fillSelect(taskEditForm.elements.type, task.type || "coding");
+  taskEditForm.elements.headline.value = task.headline || "";
+  taskEditForm.elements.branch.value = task.branch || project.activeBranch || "main";
+  taskEditForm.elements.description.value = task.description || "";
+  taskEditForm.elements.subtasks.value = (task.subtasks || []).join("\n");
+  taskEditForm.elements.successCriteria.value = (task.successCriteria || []).join("\n");
+  fillSelect(taskEditForm.elements.implementationMode, task.stageConfig.implementation.mode);
+  fillSelect(taskEditForm.elements.reviewMode, task.stageConfig.review.mode);
+  fillSelect(taskEditForm.elements.simplifyMode, task.stageConfig.simplify.mode);
+  fillSelect(taskEditForm.elements.syncMode, task.stageConfig.sync.mode);
+
+  fragment.querySelector(".task-edit-toggle").addEventListener("click", () => {
+    toggleHidden(taskEditForm);
+  });
+
+  taskEditForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const formData = new FormData(taskEditForm);
+    await api(`/api/tasks/${task.id}`, {
+      method: "PATCH",
+      body: JSON.stringify(Object.fromEntries(formData))
+    });
+    await loadState();
+  });
+
   const implementationButton = fragment.querySelector(".task-launch-implementation");
   const reviewButton = fragment.querySelector(".task-launch-review");
   const simplifyButton = fragment.querySelector(".task-launch-simplify");
+  const labels = stageLabels(task.type);
+  implementationButton.textContent = `Run ${labels.implementation}`;
+  reviewButton.textContent = `Run ${labels.review}`;
+  simplifyButton.textContent = `Run ${labels.simplify}`;
 
   implementationButton.disabled = !["codex", "claude"].includes(task.stageConfig.implementation.mode);
   reviewButton.disabled = !["codex_review", "claude_review"].includes(task.stageConfig.review.mode);
@@ -155,14 +248,71 @@ function buildProjectCard(project) {
   const card = fragment.querySelector(".project-card");
 
   fragment.querySelector(".project-name").textContent = project.name;
-  fragment.querySelector(".project-meta").textContent = `${project.repoPath || "No local repo path yet"} ${project.git?.branch ? `• ${project.git.branch}` : ""}`;
+  fragment.querySelector(".project-meta").textContent = `${project.repoPath || "No local repo path yet"} ${project.git?.branch ? `• checked out: ${project.git.branch}` : ""}`;
   fragment.querySelector(".project-headline").textContent = project.headline || "No project headline yet.";
-  fragment.querySelector(".project-branch").textContent = project.defaultBranch || "main";
+  fragment.querySelector(".project-branch").textContent = `active ${project.activeBranch || project.defaultBranch || "main"}`;
   fragment.querySelector(".project-lock").textContent = project.activeRepoLock ? `Locked by ${project.activeRepoLock.headline}` : "Repo unlocked";
   fragment.querySelector(".project-shared-root").textContent = `projects/${project.slug}/shared`;
   fragment.querySelector(".project-github").textContent = project.githubUrl || "No GitHub URL yet.";
+  const projectBody = fragment.querySelector(".project-body");
+  const collapseButton = fragment.querySelector(".project-collapse-toggle");
+  const isCollapsed = state.collapsedProjects.has(project.id);
+  if (isCollapsed) {
+    projectBody.classList.add("hidden");
+    collapseButton.textContent = "Expand";
+  } else {
+    collapseButton.textContent = "Collapse";
+  }
+
+  collapseButton.addEventListener("click", () => {
+    if (state.collapsedProjects.has(project.id)) {
+      state.collapsedProjects.delete(project.id);
+    } else {
+      state.collapsedProjects.add(project.id);
+    }
+    render();
+  });
+
+  const branchSelect = fragment.querySelector(".project-branch-select");
+  const branches = project.branches?.length ? project.branches : [project.activeBranch || project.defaultBranch || "main"];
+  branchSelect.innerHTML = branches
+    .map((branch) => `<option value="${branch}">${branch}</option>`)
+    .join("");
+  branchSelect.value = project.activeBranch || project.defaultBranch || "main";
+
+  fragment.querySelector(".project-branch-switch").addEventListener("click", async () => {
+    await switchBranch(project.id, branchSelect.value);
+  });
+
+  const projectEditForm = fragment.querySelector(".project-edit-form");
+  projectEditForm.elements.name.value = project.name || "";
+  projectEditForm.elements.headline.value = project.headline || "";
+  projectEditForm.elements.repoPath.value = project.repoPath || "";
+  projectEditForm.elements.githubUrl.value = project.githubUrl || "";
+  projectEditForm.elements.notes.value = project.notes || "";
+  projectEditForm.elements.activeBranch.value = project.activeBranch || project.defaultBranch || "main";
+  fillSelect(projectEditForm.elements.implementationMode, project.defaults.implementationMode);
+  fillSelect(projectEditForm.elements.reviewMode, project.defaults.reviewMode);
+  fillSelect(projectEditForm.elements.simplifyMode, project.defaults.simplifyMode);
+  fillSelect(projectEditForm.elements.syncMode, project.defaults.syncMode);
+
+  fragment.querySelector(".project-edit-toggle").addEventListener("click", () => {
+    toggleHidden(projectEditForm);
+  });
+
+  projectEditForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const formData = new FormData(projectEditForm);
+    await api(`/api/projects/${project.id}`, {
+      method: "PATCH",
+      body: JSON.stringify(Object.fromEntries(formData))
+    });
+    await loadState();
+  });
 
   const taskForm = fragment.querySelector(".task-form");
+  taskForm.elements.branch.value = project.activeBranch || project.defaultBranch || "main";
+  fillSelect(taskForm.elements.type, "coding");
   taskForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     const formData = new FormData(taskForm);
@@ -249,6 +399,32 @@ async function loadLog() {
   logViewer.textContent = payload.content || "No log output yet.";
 }
 
+async function safeRefreshState() {
+  if (shouldPauseRefresh()) {
+    return;
+  }
+  const sessions = state.data?.runtime?.sessions ?? [];
+  const hasRunningSession = sessions.some((session) => session.liveStatus === "running");
+  if (!hasRunningSession) {
+    return;
+  }
+  await loadState();
+}
+
+async function safeRefreshLog() {
+  if (!state.selectedSessionId) {
+    return;
+  }
+
+  const sessions = state.data?.runtime?.sessions ?? [];
+  const selected = sessions.find((session) => session.id === state.selectedSessionId);
+  if (!selected || selected.liveStatus !== "running") {
+    return;
+  }
+
+  await loadLog();
+}
+
 projectForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const formData = new FormData(projectForm);
@@ -297,5 +473,5 @@ autoSyncToggle.addEventListener("change", async (event) => {
 loadLogButton.addEventListener("click", loadLog);
 
 await loadState();
-setInterval(loadState, 5000);
-setInterval(loadLog, 5000);
+setInterval(safeRefreshState, 5000);
+setInterval(safeRefreshLog, 5000);

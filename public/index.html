@@ -4,6 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Agentic Project Portal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=IBM+Plex+Mono:wght@400;500&family=Manrope:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
@@ -11,11 +17,16 @@
       <header class="hero">
         <div class="hero-copy-wrap">
           <p class="eyebrow">Project Intake, Shared Context, Safe Execution</p>
-          <h1>Agentic Project Portal</h1>
+          <h1>Local Repo Task Dashboard</h1>
           <p class="hero-copy">
-            Capture a GitHub project, define the work in plain English, break it into subtasks,
-            set success criteria, and only launch Codex or Claude when you want a stage to run.
+            Point this at a local repository on your laptop, write task specs in plain English,
+            and launch local Codex sessions only when you want them to work.
           </p>
+          <div class="hero-note">
+            <span class="hero-chip">Local-first</span>
+            <span class="hero-chip">Existing repos on your laptop</span>
+            <span class="hero-chip">Codex on demand</span>
+          </div>
         </div>
         <div class="hero-actions">
           <button id="refreshButton" class="button secondary">Refresh</button>
@@ -26,7 +37,7 @@
 
       <section class="top-grid">
         <article class="panel stat-panel">
-          <p class="stat-label">Projects</p>
+          <p class="stat-label">Repos</p>
           <p id="projectCount" class="stat-value">0</p>
         </article>
         <article class="panel stat-panel">
@@ -50,17 +61,185 @@
         <article class="panel intake-panel">
           <div class="panel-header">
             <div>
-              <p class="section-kicker">Intake</p>
-              <h2>Add Projects Without Launching Agents</h2>
+              <p class="section-kicker">Repo Intake</p>
+              <h2>Add A Local Repo Once, Then Just Create Tasks</h2>
             </div>
+            <p class="panel-aside">Use an existing repo folder on your laptop. GitHub URL is optional metadata.</p>
           </div>
 
           <form id="projectForm" class="stack">
-            <input name="name" placeholder="Project name" required />
-            <input name="githubUrl" placeholder="GitHub URL (optional but recommended)" />
-            <input name="repoPath" placeholder="Local repo path (optional until you want coding/sync)" />
-            <input name="headline" placeholder="Project headline" />
-            <textarea name="notes" placeholder="What is this project about?"></textarea>
+            <div class="form-group">
+              <p class="mini-label">Repo Identity</p>
+              <div class="inline-grid">
+                <input name="name" placeholder="Repo name (optional)" />
+                <input name="headline" placeholder="Repo headline (optional)" />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <p class="mini-label">Local Repo</p>
+              <div class="stack compact-stack">
+                <input name="repoPath" placeholder="/absolute/path/to/local/repo" required />
+                <input name="githubUrl" placeholder="GitHub URL (optional)" />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <p class="mini-label">Workspace Notes</p>
+              <textarea name="notes" placeholder="What is this repo for? What kind of tasks will you run here?"></textarea>
+            </div>
+
+            <div class="form-group">
+              <p class="mini-label">Default Modes</p>
+              <div class="inline-grid">
+                <select name="implementationMode">
+                  <option value="codex">Implementation: Codex</option>
+                  <option value="claude">Implementation: Claude</option>
+                  <option value="manual">Implementation: Manual</option>
+                </select>
+                <select name="reviewMode">
+                  <option value="codex_review">Review: Codex</option>
+                  <option value="claude_review">Review: Claude</option>
+                  <option value="review_checklist">Review: Checklist</option>
+                  <option value="manual">Review: Manual</option>
+                </select>
+              </div>
+              <div class="inline-grid">
+                <select name="simplifyMode">
+                  <option value="simplify_skill">Simplify: Skill</option>
+                  <option value="codex_refactor">Simplify: Codex</option>
+                  <option value="refactor_checklist">Simplify: Checklist</option>
+                  <option value="skip">Simplify: Skip</option>
+                </select>
+                <select name="syncMode">
+                  <option value="push_pr">Sync: Push branch</option>
+                  <option value="push">Sync: Push only</option>
+                  <option value="commit_only">Sync: Commit only</option>
+                  <option value="manual">Sync: Manual</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button class="button primary" type="submit">Add Local Repo Workspace</button>
+            </div>
+          </form>
+
+          <form id="importForm" class="stack import-form">
+            <p class="mini-label">Bulk Import A Parent Folder</p>
+            <input name="rootPath" placeholder="/path/containing/multiple/repos" required />
+            <button class="button secondary" type="submit">Import Repos From Folder</button>
+          </form>
+
+          <div class="preview-card workflow-card">
+            <p class="section-kicker">Workflow</p>
+            <div class="workflow-steps">
+              <div class="workflow-step">
+                <span>01</span>
+                <p>Add local repo workspace</p>
+              </div>
+              <div class="workflow-step">
+                <span>02</span>
+                <p>Write task, subtasks, success criteria</p>
+              </div>
+              <div class="workflow-step">
+                <span>03</span>
+                <p>Launch local Codex session</p>
+              </div>
+              <div class="workflow-step">
+                <span>04</span>
+                <p>Sync selected files if needed</p>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="panel log-panel">
+          <div class="panel-header">
+            <div>
+              <p class="section-kicker">Stage Output</p>
+              <h2>Only Needed When You Launch A Stage</h2>
+            </div>
+            <p class="panel-aside">This rail stays quiet until you fire implementation, review, or simplify.</p>
+          </div>
+          <div id="sessionsList" class="session-list"></div>
+          <div class="log-shell">
+            <div class="log-header">
+              <span>Stage Log</span>
+              <button id="loadLogButton" class="button ghost" type="button">Reload Log</button>
+            </div>
+            <pre id="logViewer">You do not need to interact with agent terminals unless you choose to run a stage.</pre>
+          </div>
+        </article>
+      </section>
+
+      <section class="projects-panel panel">
+        <div class="panel-header">
+          <div>
+            <p class="section-kicker">Repos</p>
+            <h2>Repo Workspaces, Task Specs, And Local Codex Runs</h2>
+          </div>
+          <p class="panel-aside">Each task gets its own shared folder and can launch its own local Codex run.</p>
+        </div>
+        <div id="projectsList" class="project-list"></div>
+      </section>
+    </div>
+
+    <template id="projectTemplate">
+      <section class="project-card">
+        <div class="project-head">
+          <div>
+            <h3 class="project-name"></h3>
+            <p class="project-meta"></p>
+            <p class="project-headline"></p>
+          </div>
+          <div class="project-badges">
+            <button class="button ghost project-collapse-toggle" type="button">Collapse</button>
+            <button class="button ghost project-edit-toggle" type="button">Edit Repo</button>
+            <span class="badge project-branch"></span>
+            <span class="badge project-lock"></span>
+          </div>
+        </div>
+
+        <div class="project-body">
+        <div class="project-info-grid">
+          <div>
+            <p class="mini-label">Shared Folder</p>
+            <p class="mono project-shared-root"></p>
+          </div>
+          <div>
+            <p class="mini-label">GitHub</p>
+            <p class="mono project-github"></p>
+          </div>
+        </div>
+
+        <div class="branch-toolbar">
+          <div>
+            <p class="mini-label">Active Branch</p>
+            <div class="branch-controls">
+              <select class="project-branch-select"></select>
+              <button class="button ghost project-branch-switch" type="button">Switch Branch</button>
+            </div>
+          </div>
+          <p class="branch-note">Tasks shown below belong to the selected branch only.</p>
+        </div>
+
+        <form class="project-edit-form stack hidden">
+          <div class="form-group">
+            <p class="mini-label">Edit Repo Workspace</p>
+            <div class="inline-grid">
+              <input name="name" placeholder="Repo name" />
+              <input name="headline" placeholder="Repo headline" />
+            </div>
+            <div class="stack compact-stack">
+              <input name="repoPath" placeholder="/absolute/path/to/local/repo" />
+              <input name="githubUrl" placeholder="GitHub URL (optional)" />
+              <textarea name="notes" placeholder="Repo notes"></textarea>
+            </div>
+            <div class="inline-grid">
+              <input name="activeBranch" placeholder="Active branch" />
+              <div></div>
+            </div>
             <div class="inline-grid">
               <select name="implementationMode">
                 <option value="codex">Implementation: Codex</option>
@@ -88,112 +267,69 @@
                 <option value="manual">Sync: Manual</option>
               </select>
             </div>
-            <button class="button primary" type="submit">Create Project Folder</button>
-          </form>
-
-          <form id="importForm" class="stack import-form">
-            <input name="rootPath" placeholder="Optional: scan a parent folder for local git repos" required />
-            <button class="button secondary" type="submit">Import Local Repos</button>
-          </form>
-
-          <div class="preview-card">
-            <p class="section-kicker">Visual Preview</p>
-            <img src="/dashboard-preview.svg" alt="Portal layout preview" />
-          </div>
-        </article>
-
-        <article class="panel log-panel">
-          <div class="panel-header">
-            <div>
-              <p class="section-kicker">Stage Output</p>
-              <h2>Only Needed When You Launch A Stage</h2>
+            <div class="form-actions">
+              <button class="button secondary project-edit-save" type="submit">Save Repo</button>
             </div>
           </div>
-          <div id="sessionsList" class="session-list"></div>
-          <div class="log-shell">
-            <div class="log-header">
-              <span>Stage Log</span>
-              <button id="loadLogButton" class="button ghost" type="button">Reload Log</button>
-            </div>
-            <pre id="logViewer">You do not need to interact with agent terminals unless you choose to run a stage.</pre>
-          </div>
-        </article>
-      </section>
-
-      <section class="projects-panel panel">
-        <div class="panel-header">
-          <div>
-            <p class="section-kicker">Projects</p>
-            <h2>Projects, Task Folders, And Sync Controls</h2>
-          </div>
-        </div>
-        <div id="projectsList" class="project-list"></div>
-      </section>
-    </div>
-
-    <template id="projectTemplate">
-      <section class="project-card">
-        <div class="project-head">
-          <div>
-            <h3 class="project-name"></h3>
-            <p class="project-meta"></p>
-            <p class="project-headline"></p>
-          </div>
-          <div class="project-badges">
-            <span class="badge project-branch"></span>
-            <span class="badge project-lock"></span>
-          </div>
-        </div>
-
-        <div class="project-info-grid">
-          <div>
-            <p class="mini-label">Shared Folder</p>
-            <p class="mono project-shared-root"></p>
-          </div>
-          <div>
-            <p class="mini-label">GitHub</p>
-            <p class="mono project-github"></p>
-          </div>
-        </div>
+        </form>
 
         <form class="task-form stack task-intake">
-          <input name="headline" placeholder="Task headline" required />
-          <textarea name="description" placeholder="Task description in plain English"></textarea>
-          <div class="inline-grid">
-            <textarea name="subtasks" placeholder="Subtasks, one per line"></textarea>
-            <textarea name="successCriteria" placeholder="Success criteria, one per line"></textarea>
+          <div class="form-group">
+            <p class="mini-label">Task Definition</p>
+            <select name="type">
+              <option value="coding">Task type: Coding</option>
+              <option value="understanding">Task type: Understanding</option>
+              <option value="summarization">Task type: Summarization</option>
+              <option value="research">Task type: Research</option>
+            </select>
+            <input name="headline" placeholder="Task headline" required />
+            <input name="branch" class="task-branch-input" placeholder="Branch" />
+            <textarea name="description" placeholder="Task description in plain English"></textarea>
           </div>
-          <div class="inline-grid">
-            <select name="implementationMode">
-              <option value="codex">Implementation: Codex</option>
-              <option value="claude">Implementation: Claude</option>
-              <option value="manual">Implementation: Manual</option>
-            </select>
-            <select name="reviewMode">
-              <option value="codex_review">Review: Codex</option>
-              <option value="claude_review">Review: Claude</option>
-              <option value="review_checklist">Review: Checklist</option>
-              <option value="manual">Review: Manual</option>
-            </select>
+          <div class="form-group">
+            <p class="mini-label">Breakdown</p>
+            <div class="inline-grid">
+              <textarea name="subtasks" placeholder="Subtasks, one per line"></textarea>
+              <textarea name="successCriteria" placeholder="Success criteria, one per line"></textarea>
+            </div>
           </div>
-          <div class="inline-grid">
-            <select name="simplifyMode">
-              <option value="simplify_skill">Simplify: Skill</option>
-              <option value="codex_refactor">Simplify: Codex</option>
-              <option value="refactor_checklist">Simplify: Checklist</option>
-              <option value="skip">Simplify: Skip</option>
-            </select>
-            <select name="syncMode">
-              <option value="push_pr">Sync: Push branch</option>
-              <option value="push">Sync: Push only</option>
-              <option value="commit_only">Sync: Commit only</option>
-              <option value="manual">Sync: Manual</option>
-            </select>
+          <div class="form-group">
+            <p class="mini-label">Stage Modes</p>
+            <div class="inline-grid">
+              <select name="implementationMode">
+                <option value="codex">Implementation: Codex</option>
+                <option value="claude">Implementation: Claude</option>
+                <option value="manual">Implementation: Manual</option>
+              </select>
+              <select name="reviewMode">
+                <option value="codex_review">Review: Codex</option>
+                <option value="claude_review">Review: Claude</option>
+                <option value="review_checklist">Review: Checklist</option>
+                <option value="manual">Review: Manual</option>
+              </select>
+            </div>
+            <div class="inline-grid">
+              <select name="simplifyMode">
+                <option value="simplify_skill">Simplify: Skill</option>
+                <option value="codex_refactor">Simplify: Codex</option>
+                <option value="refactor_checklist">Simplify: Checklist</option>
+                <option value="skip">Simplify: Skip</option>
+              </select>
+              <select name="syncMode">
+                <option value="push_pr">Sync: Push branch</option>
+                <option value="push">Sync: Push only</option>
+                <option value="commit_only">Sync: Commit only</option>
+                <option value="manual">Sync: Manual</option>
+              </select>
+            </div>
           </div>
-          <button class="button secondary" type="submit">Create Task Folder</button>
+          <div class="form-actions">
+            <button class="button secondary" type="submit">Add Task To Repo</button>
+          </div>
         </form>
 
         <div class="task-list"></div>
+        </div>
       </section>
     </template>
 
@@ -204,25 +340,80 @@
             <h4 class="task-title"></h4>
             <p class="task-detail"></p>
           </div>
-          <span class="badge task-status"></span>
+          <div class="task-header-actions">
+            <button class="button ghost task-edit-toggle" type="button">Edit Task</button>
+            <span class="badge task-status"></span>
+          </div>
         </div>
 
-        <div class="task-meta-grid">
+          <div class="task-meta-grid">
           <div>
             <p class="mini-label">Shared Task Folder</p>
             <p class="mono task-root"></p>
           </div>
           <div>
-            <p class="mini-label">Modes</p>
-            <p class="task-modes"></p>
+            <p class="mini-label">Branch</p>
+            <p class="task-branch"></p>
           </div>
         </div>
 
+        <p class="task-modes"></p>
+
         <div class="pill-row">
+          <span class="pill task-type"></span>
           <span class="pill task-priority"></span>
           <span class="pill task-subtasks"></span>
           <span class="pill task-success"></span>
         </div>
+
+        <form class="task-edit-form stack hidden">
+          <div class="form-group">
+            <p class="mini-label">Edit Task</p>
+            <select name="type">
+              <option value="coding">Task type: Coding</option>
+              <option value="understanding">Task type: Understanding</option>
+              <option value="summarization">Task type: Summarization</option>
+              <option value="research">Task type: Research</option>
+            </select>
+            <input name="headline" placeholder="Task headline" />
+            <input name="branch" placeholder="Branch" />
+            <textarea name="description" placeholder="Task description"></textarea>
+            <div class="inline-grid">
+              <textarea name="subtasks" placeholder="Subtasks, one per line"></textarea>
+              <textarea name="successCriteria" placeholder="Success criteria, one per line"></textarea>
+            </div>
+            <div class="inline-grid">
+              <select name="implementationMode">
+                <option value="codex">Implementation: Codex</option>
+                <option value="claude">Implementation: Claude</option>
+                <option value="manual">Implementation: Manual</option>
+              </select>
+              <select name="reviewMode">
+                <option value="codex_review">Review: Codex</option>
+                <option value="claude_review">Review: Claude</option>
+                <option value="review_checklist">Review: Checklist</option>
+                <option value="manual">Review: Manual</option>
+              </select>
+            </div>
+            <div class="inline-grid">
+              <select name="simplifyMode">
+                <option value="simplify_skill">Simplify: Skill</option>
+                <option value="codex_refactor">Simplify: Codex</option>
+                <option value="refactor_checklist">Simplify: Checklist</option>
+                <option value="skip">Simplify: Skip</option>
+              </select>
+              <select name="syncMode">
+                <option value="push_pr">Sync: Push branch</option>
+                <option value="push">Sync: Push only</option>
+                <option value="commit_only">Sync: Commit only</option>
+                <option value="manual">Sync: Manual</option>
+              </select>
+            </div>
+            <div class="form-actions">
+              <button class="button secondary task-edit-save" type="submit">Save Task</button>
+            </div>
+          </div>
+        </form>
 
         <div class="task-actions">
           <button class="button ghost task-launch-implementation" type="button">Run Implementation</button>

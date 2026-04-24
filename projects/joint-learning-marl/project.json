@@ -1,0 +1,40 @@
+{
+  "id": "joint-learning-marl",
+  "slug": "joint-learning-marl",
+  "name": "joint-learning marl",
+  "headline": "",
+  "githubUrl": "",
+  "repoPath": "/Users/debajitchakraborty/Desktop/Projects/joint-learning-marl",
+  "defaultBranch": "main",
+  "notes": "This is for implementing supervised learning (joint-learning folder) on the network-data branch for implementing my training mechanism",
+  "status": "active",
+  "defaults": {
+    "implementationMode": "codex",
+    "reviewMode": "codex_review",
+    "simplifyMode": "simplify_skill",
+    "syncMode": "push_pr"
+  },
+  "policies": {
+    "allowParallelRepoWrites": false,
+    "requireExplicitSyncFiles": true,
+    "reviewContextMode": "narrow"
+  },
+  "sync": {
+    "githubRepo": "",
+    "lastSyncedAt": null
+  },
+  "createdAt": "2026-04-23T23:14:19.337Z",
+  "updatedAt": "2026-04-23T23:38:18.462Z",
+  "activeBranch": "network-data",
+  "branches": [
+    "main",
+    "network-data"
+  ],
+  "tasks": [],
+  "git": {
+    "branch": "main",
+    "dirty": true,
+    "remoteUrl": "https://github.com/debajit15kgp/joint-learning-marl.git",
+    "statusSummary": "?? joint-learning/\n?? supervised_learning/"
+  }
+}
